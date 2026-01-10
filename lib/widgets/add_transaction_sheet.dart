@@ -62,7 +62,7 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
           children: [
             Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10)))),
             const SizedBox(height: 20),
-            const Center(child: Text("Add Transaction", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2D6A4F)))),
+            const Center(child: Text("Transaction", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2D6A4F)))),
             const SizedBox(height: 20),
 
             // Sélecteur Income / Expense (Design Maquette)
@@ -128,7 +128,7 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
                 minimumSize: const Size(double.infinity, 55),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
               ),
-              child: const Text("Add Transaction", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+              child: const Text("Ajouter", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
             ),
             const SizedBox(height: 20),
           ],
