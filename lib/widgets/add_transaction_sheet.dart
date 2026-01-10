@@ -15,7 +15,7 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
   final _supabase = Supabase.instance.client;
   bool isIncome = true;
   
-  // Changement ici : on stocke des Maps pour avoir l'ID et le NOM
+  // stocke des Maps pour avoir l'ID et le NOM
   List<Map<String, dynamic>> _categoriesFromDb = [];
   String? _selectedCategoryId; 
   
@@ -27,10 +27,9 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
   @override
   void initState() {
     super.initState();
-    _loadCategories(); // Charger les vraies catégories au démarrage
+    _loadCategories(); 
   }
 
-  // RÉCUPÉRER LES CATÉGORIES DE LA BD
   Future<void> _loadCategories() async {
     try {
       final type = isIncome ? 'revenu' : 'depense';

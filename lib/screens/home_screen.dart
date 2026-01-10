@@ -107,11 +107,26 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   PreferredSizeWidget _buildAppBar() => AppBar(
-    backgroundColor: Colors.white, elevation: 0,
-    title: const Text("Dépenses", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+    backgroundColor: Colors.white,
+    elevation: 0,
+    title: const Text("Transactions", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
     centerTitle: true,
     leading: const Icon(LucideIcons.search, color: Colors.grey),
-    actions: const [Padding(padding: EdgeInsets.only(right: 15), child: CircleAvatar(radius: 15, backgroundColor: Color(0xFFE0E0E0), child: Icon(LucideIcons.user, size: 18, color: Colors.grey)))],
+    actions: [
+      Padding(
+        padding: const EdgeInsets.only(right: 15),
+        child: GestureDetector(
+          onTap: () {
+            Navigator.pushNamed(context, '/profile');
+          },
+          child: const CircleAvatar(
+            radius: 15,
+            backgroundColor: Color(0xFFE0E0E0),
+            child: Icon(LucideIcons.user, size: 18, color: Colors.grey)
+          ),
+        ),
+      )
+    ],
   );
 
   Widget _buildDateSelector() => Padding(
@@ -155,14 +170,23 @@ class _HomeScreenState extends State<HomeScreen> {
   );
 
   Widget _buildBottomBar() => BottomAppBar(
-    shape: const CircularNotchedRectangle(), notchMargin: 8,
-    child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: const [
-      Icon(LucideIcons.calendar, color: Color(0xFF2D6A4F)),
-      Icon(LucideIcons.barChart2, color: Colors.grey),
-      SizedBox(width: 40),
-      Icon(LucideIcons.dollarSign, color: Colors.grey),
-      Icon(LucideIcons.settings, color: Colors.grey),
-    ]),
+    shape: const CircularNotchedRectangle(),
+    notchMargin: 8,
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: [
+        const Icon(LucideIcons.calendar, color: Color(0xFF2D6A4F)),
+        const Icon(LucideIcons.barChart2, color: Colors.grey),
+        const SizedBox(width: 40), 
+        const Icon(LucideIcons.dollarSign, color: Colors.grey),
+        IconButton(
+          icon: const Icon(LucideIcons.user, color: Colors.grey),
+          onPressed: () {
+            Navigator.pushNamed(context, '/profile');
+          },
+        ),
+      ],
+    ),
   );
 }
 
@@ -183,25 +207,42 @@ class _DayGroupWidget extends StatelessWidget {
 
     return Column(
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-          color: Colors.grey[50],
-          child: Row(
-            children: [
-              Text(DateFormat('dd', 'fr_FR').format(dt), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(width: 5),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(4)), 
-                child: Text(DateFormat('E', 'fr_FR').format(dt).toLowerCase(), style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))
-              ),
-              const Spacer(),
-              if (dayRev > 0) Text("FCFA ${dayRev.toInt()}", style: const TextStyle(color: Colors.indigo, fontSize: 12)),
-              const SizedBox(width: 15),
-              if (dayDep > 0) Text("FCFA ${dayDep.toInt()}", style: const TextStyle(color: Colors.orange, fontSize: 12)),
-            ],
-          ),
-        ),
+Container(
+  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+  color: Colors.grey[50],
+  child: Row(
+    children: [
+      Text(
+        DateFormat('dd', 'fr_FR').format(dt), 
+        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)
+      ),
+      const SizedBox(width: 5),
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: Colors.black87, 
+          borderRadius: BorderRadius.circular(4)
+        ), 
+        child: Text(
+          DateFormat('E', 'fr_FR').format(dt).toLowerCase(), 
+          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)
+        )
+      ),
+      const Spacer(),
+      Text(
+        "FCFA ${dayRev.toInt()}", 
+        style: const TextStyle(color: Colors.indigo, fontSize: 12)
+      ),
+      
+      const SizedBox(width: 50),
+      
+      Text(
+        "FCFA ${dayDep.toInt()}", 
+        style: const TextStyle(color: Colors.orange, fontSize: 12)
+      ),
+    ],
+  ),
+),
         ...items.map((tx) => _TransactionDetailTile(tx: tx)).toList(),
       ],
     );
@@ -238,7 +279,6 @@ class _TransactionDetailTile extends StatelessWidget {
             ),
           ),
           
-          // DROITE : Montant
           Expanded(
             flex: 3, 
             child: Text(
