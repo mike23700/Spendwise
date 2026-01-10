@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
+import '../widgets/add_transaction_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -149,12 +150,22 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF2D6A4F),
-        elevation: 4,
-        onPressed: () {},
-        child: const Icon(Icons.add, color: Colors.white, size: 30),
+floatingActionButton: FloatingActionButton(
+  backgroundColor: const Color(0xFF2D6A4F),
+  onPressed: () {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true, 
+      backgroundColor: Colors.transparent,
+      builder: (context) => AddTransactionSheet(
+        onTransactionAdded: () {
+          _fetchDashboardData(); 
+        },
       ),
+    );
+  },
+  child: const Icon(Icons.add, color: Colors.white, size: 30),
+),
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
         notchMargin: 8,
