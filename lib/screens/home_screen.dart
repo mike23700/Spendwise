@@ -152,7 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF2D6A4F),
         elevation: 4,
-        onPressed: () {}, // À lier au futur formulaire d'ajout
+        onPressed: () {},
         child: const Icon(Icons.add, color: Colors.white, size: 30),
       ),
       bottomNavigationBar: BottomAppBar(
@@ -167,7 +167,7 @@ class _HomeScreenState extends State<HomeScreen> {
               IconButton(icon: const Icon(LucideIcons.barChart2, color: Colors.grey), onPressed: () {}),
               const SizedBox(width: 40), // Espace central
               IconButton(icon: const Icon(LucideIcons.dollarSign, color: Colors.grey), onPressed: () {}),
-              IconButton(icon: const Icon(LucideIcons.settings, color: Colors.grey), onPressed: () {}),
+              IconButton(icon: const Icon(LucideIcons.user, color: Colors.grey), onPressed: () {}),
             ],
           ),
         ),
