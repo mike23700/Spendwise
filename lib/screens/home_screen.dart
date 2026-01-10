@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:provider/provider.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
+import '../providers/user_provider.dart';
 import '../widgets/add_transaction_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -12,101 +13,40 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final _supabase = Supabase.instance.client;
-  bool _isLoading = true;
-  double totalRevenus = 0.0;
-  double totalDepenses = 0.0;
-  
-  Map<String, List<Map<String, dynamic>>> groupedTransactions = {};
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchDashboardData();
-  }
-
-  Future<void> _fetchDashboardData() async {
-    try {
-      final userId = _supabase.auth.currentUser?.id;
-      if (userId == null) return;
-
-      // Jointure avec la table categories pour récupérer le champ 'nom'
-      final revs = await _supabase
-          .from('revenus')
-          .select('*, categories(nom)')
-          .eq('user_id', userId);
-          
-      final deps = await _supabase
-          .from('depenses')
-          .select('*, categories(nom)')
-          .eq('user_id', userId);
-
-      final all = [
-        ...(revs as List).map((e) => {...e, 'type': 'revenu'}),
-        ...(deps as List).map((e) => {...e, 'type': 'depense'}),
-      ];
-
-      all.sort((a, b) => DateTime.parse(b['date']).compareTo(DateTime.parse(a['date'])));
-
-      Map<String, List<Map<String, dynamic>>> groups = {};
-      double resRev = 0;
-      double resDep = 0;
-
-      for (var tx in all) {
-        String dateKey = DateFormat('yyyy-MM-dd').format(DateTime.parse(tx['date']));
-        if (groups[dateKey] == null) groups[dateKey] = [];
-        groups[dateKey]!.add(Map<String, dynamic>.from(tx));
-        
-        double mnt = (tx['montant'] as num).toDouble();
-        if (tx['type'] == 'revenu') resRev += mnt; else resDep += mnt;
-      }
-
-      if (mounted) {
-        setState(() {
-          groupedTransactions = groups;
-          totalRevenus = resRev;
-          totalDepenses = resDep;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      debugPrint("Erreur de données: $e");
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final sortedKeys = groupedTransactions.keys.toList();
+    // On écoute le store
+    final store = context.watch<UserProvider>();
+    final sortedKeys = store.groupedTransactions.keys.toList();
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: _buildAppBar(),
-      body: _isLoading 
+      appBar: _buildAppBar(store),
+      body: store.isLoading 
         ? const Center(child: CircularProgressIndicator(color: Color(0xFF2D6A4F)))
         : Column(
             children: [
               _buildDateSelector(),
               _buildTabs(),
-              _buildGlobalSummary(),
+              _buildGlobalSummary(store),
               Expanded(
                 child: ListView.builder(
                   itemCount: sortedKeys.length,
                   itemBuilder: (context, index) {
                     String date = sortedKeys[index];
-                    return _DayGroupWidget(date: date, items: groupedTransactions[date]!);
+                    return _DayGroupWidget(date: date, items: store.groupedTransactions[date]!);
                   },
                 ),
               ),
             ],
           ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: _buildFAB(),
-      bottomNavigationBar: _buildBottomBar(),
+      floatingActionButton: _buildFAB(context),
+      bottomNavigationBar: _buildBottomBar(context),
     );
   }
 
-  PreferredSizeWidget _buildAppBar() => AppBar(
+  PreferredSizeWidget _buildAppBar(UserProvider store) => AppBar(
     backgroundColor: Colors.white,
     elevation: 0,
     title: const Text("Transactions", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
@@ -116,9 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
       Padding(
         padding: const EdgeInsets.only(right: 15),
         child: GestureDetector(
-          onTap: () {
-            Navigator.pushNamed(context, '/profile');
-          },
+          onTap: () => Navigator.pushNamed(context, '/profile'),
           child: const CircleAvatar(
             radius: 15,
             backgroundColor: Color(0xFFE0E0E0),
@@ -150,26 +88,28 @@ class _HomeScreenState extends State<HomeScreen> {
     ]),
   );
 
-  Widget _buildGlobalSummary() => Container(
+  Widget _buildGlobalSummary(UserProvider store) => Container(
     padding: const EdgeInsets.symmetric(vertical: 12),
     decoration: BoxDecoration(border: Border.symmetric(horizontal: BorderSide(color: Colors.grey[200]!))),
     child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-      _SummaryItem(label: "Revenus", value: totalRevenus, color: Colors.indigo),
-      _SummaryItem(label: "Dépenses", value: totalDepenses, color: Colors.orange),
-      _SummaryItem(label: "Total", value: totalRevenus - totalDepenses, color: const Color(0xFF2D6A4F)),
+      _SummaryItem(label: "Revenus", value: store.totalRevenus, color: Colors.indigo),
+      _SummaryItem(label: "Dépenses", value: store.totalDepenses, color: Colors.orange),
+      _SummaryItem(label: "Total", value: store.totalRevenus - store.totalDepenses, color: const Color(0xFF2D6A4F)),
     ]),
   );
 
-  Widget _buildFAB() => FloatingActionButton(
+  Widget _buildFAB(BuildContext context) => FloatingActionButton(
     backgroundColor: const Color(0xFF2D6A4F),
     onPressed: () => showModalBottomSheet(
       context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
-      builder: (context) => AddTransactionSheet(onTransactionAdded: _fetchDashboardData),
+      builder: (context) => AddTransactionSheet(
+        onTransactionAdded: () => context.read<UserProvider>().fetchData(),
+      ),
     ),
     child: const Icon(Icons.add, color: Colors.white, size: 30),
   );
 
-  Widget _buildBottomBar() => BottomAppBar(
+  Widget _buildBottomBar(BuildContext context) => BottomAppBar(
     shape: const CircularNotchedRectangle(),
     notchMargin: 8,
     child: Row(
@@ -181,15 +121,14 @@ class _HomeScreenState extends State<HomeScreen> {
         const Icon(LucideIcons.dollarSign, color: Colors.grey),
         IconButton(
           icon: const Icon(LucideIcons.user, color: Colors.grey),
-          onPressed: () {
-            Navigator.pushNamed(context, '/profile');
-          },
+          onPressed: () => Navigator.pushNamed(context, '/profile'),
         ),
       ],
     ),
   );
 }
 
+// Widget de Groupe par Jour (Repliable)
 class _DayGroupWidget extends StatefulWidget {
   final String date;
   final List<Map<String, dynamic>> items;
@@ -200,7 +139,6 @@ class _DayGroupWidget extends StatefulWidget {
 }
 
 class _DayGroupWidgetState extends State<_DayGroupWidget> {
-  // Par défaut, on laisse les transactions visibles (dépliées)
   bool _isExpanded = true;
 
   @override
@@ -208,7 +146,6 @@ class _DayGroupWidgetState extends State<_DayGroupWidget> {
     DateTime dt = DateTime.parse(widget.date);
     double dayRev = 0;
     double dayDep = 0;
-    
     for (var item in widget.items) {
       double mnt = (item['montant'] as num).toDouble();
       if (item['type'] == 'revenu') dayRev += mnt; else dayDep += mnt;
@@ -217,49 +154,29 @@ class _DayGroupWidgetState extends State<_DayGroupWidget> {
     return Column(
       children: [
         GestureDetector(
-          onTap: () {
-            setState(() {
-              _isExpanded = !_isExpanded;
-            });
-          },
+          onTap: () => setState(() => _isExpanded = !_isExpanded),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
             color: Colors.grey[50],
             child: Row(
               children: [
-                Text(
-                  DateFormat('dd', 'fr_FR').format(dt), 
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)
-                ),
+                Text(DateFormat('dd', 'fr_FR').format(dt), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                 const SizedBox(width: 5),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.black87, 
-                    borderRadius: BorderRadius.circular(4)
-                  ), 
-                  child: Text(
-                    DateFormat('E', 'fr_FR').format(dt).toLowerCase(), 
-                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)
-                  )
+                  decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(4)), 
+                  child: Text(DateFormat('E', 'fr_FR').format(dt).toLowerCase(), style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 const Spacer(),
-                Text(
-                  "FCFA ${dayRev.toInt()}", 
-                  style: const TextStyle(color: Colors.indigo, fontSize: 12)
-                ),
+                Text("FCFA ${dayRev.toInt()}", style: const TextStyle(color: Colors.indigo, fontSize: 12)),
                 const SizedBox(width: 40),
-                Text(
-                  "FCFA ${dayDep.toInt()}", 
-                  style: const TextStyle(color: Colors.orange, fontSize: 12)
-                ),
+                Text("FCFA ${dayDep.toInt()}", style: const TextStyle(color: Colors.orange, fontSize: 12)),
               ],
             ),
           ),
         ),
-        if (_isExpanded)
-          ...widget.items.map((tx) => _TransactionDetailTile(tx: tx)).toList(),
+        if (_isExpanded) ...widget.items.map((tx) => _TransactionDetailTile(tx: tx)).toList(),
       ],
     );
   }
@@ -279,11 +196,7 @@ class _TransactionDetailTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
       child: Row(
         children: [
-          Expanded(
-            flex: 3, 
-            child: Text(category, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w400))
-          ),
-          
+          Expanded(flex: 3, child: Text(category, style: const TextStyle(fontSize: 15))),
           Expanded(
             flex: 3,
             child: Column(
@@ -294,11 +207,9 @@ class _TransactionDetailTile extends StatelessWidget {
               ],
             ),
           ),
-          
           Expanded(
             flex: 3, 
-            child: Text(
-              "FCFA ${tx['montant']}", 
+            child: Text("FCFA ${tx['montant']}", 
               style: TextStyle(color: isRev ? Colors.indigo : Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 14), 
               textAlign: TextAlign.right
             )

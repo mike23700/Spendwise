@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
+import 'package:provider/provider.dart'; 
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'services/supabase_config.dart';
+import 'providers/user_provider.dart'; 
 import 'screens/welcome_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
@@ -12,14 +13,16 @@ import 'screens/profile_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // 1. Initialisation de la localisation pour éviter l'erreur LocaleDataException
   await initializeDateFormatting('fr_FR');
-
-  // 2. Initialisation de Supabase
   await SupabaseConfig.init();
 
-  runApp(const SpendwiseApp());
+  runApp(
+    // Injection du Provider au sommet de l'application
+    ChangeNotifierProvider(
+      create: (_) => UserProvider(),
+      child: const SpendwiseApp(),
+    ),
+  );
 }
 
 class SpendwiseApp extends StatelessWidget {
@@ -30,25 +33,18 @@ class SpendwiseApp extends StatelessWidget {
     return MaterialApp(
       title: 'Spendwise',
       debugShowCheckedModeBanner: false,
-      
-      // Configuration de la langue française pour toute l'app
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('fr', 'FR'),
-      ],
+      supportedLocales: const [Locale('fr', 'FR')],
       locale: const Locale('fr', 'FR'),
-
       theme: ThemeData(
         primaryColor: const Color(0xFF2D6A4F),
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2D6A4F)),
         useMaterial3: true,
       ),
-
-      // 4. Gestion des routes
       initialRoute: '/',
       routes: {
         '/': (context) => const AuthGate(),
@@ -61,30 +57,23 @@ class SpendwiseApp extends StatelessWidget {
   }
 }
 
-class AuthGate extends StatefulWidget {
+class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
   @override
-  State<AuthGate> createState() => _AuthGateState();
-}
-
-class _AuthGateState extends State<AuthGate> {
-  @override
   Widget build(BuildContext context) {
-    // 5. Utilisation du flux d'authentification en temps réel
     return StreamBuilder<AuthState>(
       stream: Supabase.instance.client.auth.onAuthStateChange,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator(color: Color(0xFF2D6A4F))),
-          );
+          return const Scaffold(body: Center(child: CircularProgressIndicator(color: Color(0xFF2D6A4F))));
         }
 
         final session = snapshot.data?.session;
 
-        // Si une session existe, on affiche l'accueil, sinon l'onboarding
         if (session != null) {
+          // On lance le chargement des données dès que l'utilisateur est connecté
+          Future.microtask(() => context.read<UserProvider>().fetchData());
           return const HomeScreen();
         } else {
           return const WelcomeScreen();
