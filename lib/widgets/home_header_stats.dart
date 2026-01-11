@@ -18,24 +18,57 @@ class HomeHeaderStats extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        _buildDateSelector(),
+        _buildDateSelector(context),
         _buildTabsHeader(),
         _buildGlobalSummary(),
       ],
     );
   }
 
-  Widget _buildDateSelector() => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 10),
-    child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-      const Icon(Icons.chevron_left, color: Colors.grey),
-      const SizedBox(width: 30),
-      Text(DateFormat('MMM yyyy', 'fr_FR').format(DateTime.now()), 
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
-      const SizedBox(width: 30),
-      const Icon(Icons.chevron_right, color: Colors.grey),
-    ]),
-  );
+  Widget _buildDateSelector(BuildContext context) {
+    // On utilise la date stockée dans le provider pour que tout soit synchrone
+    // Si tu n'as pas encore 'selectedDate' dans ton provider, utilise DateTime.now() par défaut
+    DateTime displayDate = store.selectedDate; 
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center, 
+        children: [
+          // Bouton Mois Précédent
+          IconButton(
+            onPressed: () => _changeMonth(context, -1),
+            icon: const Icon(Icons.chevron_left, color: Colors.grey),
+          ),
+          const SizedBox(width: 20),
+          
+          // Affichage du mois et de l'année
+          Text(
+            DateFormat('MMM yyyy', 'fr_FR').format(displayDate), 
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500)
+          ),
+          
+          const SizedBox(width: 20),
+          
+          // Bouton Mois Suivant
+          IconButton(
+            onPressed: () => _changeMonth(context, 1),
+            icon: const Icon(Icons.chevron_right, color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Fonction pour changer le mois
+  void _changeMonth(BuildContext context, int offset) {
+    DateTime current = store.selectedDate;
+    // On crée la nouvelle date en ajoutant/retirant un mois
+    DateTime newDate = DateTime(current.year, current.month + offset, 1);
+    
+    // On met à jour la date dans le provider (méthode à créer dans user_provider.dart)
+    store.updateSelectedDate(newDate);
+  }
 
   Widget _buildTabsHeader() => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),

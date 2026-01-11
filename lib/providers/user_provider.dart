@@ -5,6 +5,10 @@ import 'package:intl/intl.dart';
 class UserProvider extends ChangeNotifier {
   final _supabase = Supabase.instance.client;
 
+  // État de la date sélectionnée
+  DateTime _selectedDate = DateTime.now();
+  DateTime get selectedDate => _selectedDate;
+
   double totalRevenus = 0.0;
   double totalDepenses = 0.0;
   int totalDepensesCount = 0;
@@ -14,15 +18,37 @@ class UserProvider extends ChangeNotifier {
   Map<String, List<Map<String, dynamic>>> groupedTransactions = {};
   bool isLoading = true;
 
+  // Fonction pour mettre à jour la date depuis le Header
+  void updateSelectedDate(DateTime newDate) {
+    _selectedDate = newDate;
+    notifyListeners();
+    fetchData(); 
+  }
+
   Future<void> fetchData() async {
     try {
+      isLoading = true;
+      notifyListeners();
+
       final user = _supabase.auth.currentUser;
       if (user == null) return;
 
+      // Calcul du premier et dernier jour du mois sélectionné pour le filtrage
+      final firstDay = DateTime(_selectedDate.year, _selectedDate.month, 1);
+      final lastDay = DateTime(_selectedDate.year, _selectedDate.month + 1, 0, 23, 59, 59);
+
       final results = await Future.wait<dynamic>([
         _supabase.from('profiles').select().eq('id', user.id).maybeSingle(),
-        _supabase.from('revenus').select('*, categories(nom)').eq('user_id', user.id),
-        _supabase.from('depenses').select('*, categories(nom)').eq('user_id', user.id),
+        _supabase.from('revenus')
+            .select('*, categories(nom)')
+            .eq('user_id', user.id)
+            .gte('date', firstDay.toIso8601String())
+            .lte('date', lastDay.toIso8601String()),
+        _supabase.from('depenses')
+            .select('*, categories(nom)')
+            .eq('user_id', user.id)
+            .gte('date', firstDay.toIso8601String())
+            .lte('date', lastDay.toIso8601String()),
       ]);
 
       final profileData = results[0] as Map<String, dynamic>?;
@@ -39,6 +65,7 @@ class UserProvider extends ChangeNotifier {
         ...deps.map((e) => {...e, 'type': 'depense'}),
       ];
       
+      // Tri décroissant par date
       all.sort((a, b) => DateTime.parse(b['date']).compareTo(DateTime.parse(a['date'])));
 
       Map<String, List<Map<String, dynamic>>> groups = {};
