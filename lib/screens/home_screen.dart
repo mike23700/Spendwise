@@ -58,7 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
     actions: [
     IconButton(
       onPressed: () {
-        // TODO : action tips / conseils / astuces
+        // TODO : astuces ia
       },
       icon: const Icon(
         LucideIcons.lightbulb,
@@ -80,12 +80,29 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildFAB() => FloatingActionButton(
     backgroundColor: const Color(0xFF2D6A4F),
+    shape: const CircleBorder(),
     onPressed: () => showModalBottomSheet(
       context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
       builder: (context) => AddTransactionSheet(onTransactionAdded: () => context.read<UserProvider>().fetchData()),
     ),
-    child: const Icon(Icons.add, color: Colors.white, size: 30),
+    child: const Icon(Icons.add, color: Colors.white, size: 40),
   );
+
+/*Widget _buildFAB() => FloatingActionButton(
+  backgroundColor: const Color(0xFF2D6A4F),
+  shape: const CircleBorder(), 
+  onPressed: () => showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (context) => AddTransactionSheet(
+      onTransactionAdded: () => context.read<UserProvider>().fetchData(),
+    ),
+  ),
+  child: const Icon(Icons.add, color: Colors.white, size: 30),
+);*/
+
+
 
   Widget _buildBottomBar() => BottomAppBar(
     shape: const CircularNotchedRectangle(),
