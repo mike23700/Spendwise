@@ -1,136 +1,377 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:intl/intl.dart';
+import '../services/auth_service.dart';
+import '../services/transaction_service.dart';
+import '../services/onboarding_service.dart';
 
 class UserProvider extends ChangeNotifier {
-  final _supabase = Supabase.instance.client;
+  final SupabaseClient _supabase = Supabase.instance.client;
+  final AuthService _authService = AuthService();
+  final TransactionService _transactionService = TransactionService();
+  final OnboardingService _onboardingService = OnboardingService();
 
-  // État de la date sélectionnée
+  // ==========================
+  // ÉTATS
+  // ==========================
+  bool _isLoading = true;
+  bool _isAuthenticated = false;
+  bool _hasCompletedOnboarding = false;
+
+  Map<String, dynamic>? _profile;
+  List<Map<String, dynamic>> _transactions = [];
+  List<Map<String, dynamic>> _categories = [];
+
   DateTime _selectedDate = DateTime.now();
+  String? _lastError;
+
+  // ==========================
+  // GETTERS
+  // ==========================
+  bool get isLoading => _isLoading;
+  bool get isAuthenticated => _isAuthenticated;
+  bool get hasCompletedOnboarding => _hasCompletedOnboarding;
+  String? get lastError => _lastError;
+
+  String get displayName => _profile?['nom'] ?? 'Utilisateur';
+  String? get email => _profile?['email'];
   DateTime get selectedDate => _selectedDate;
 
-  // Données financières
-  double totalRevenus = 0.0;
-  double totalDepenses = 0.0;
-  int totalDepensesCount = 0;
-  int moisActifs = 0;
-  double epargneTotale = 0.0; 
-  String displayName = "Chargement...";
-  
-  // Listes pour l'interface
-  Map<String, List<Map<String, dynamic>>> groupedTransactions = {};
-  List<Map<String, dynamic>> incomeCategories = [];
-  List<Map<String, dynamic>> expenseCategories = [];
-  
-  bool isLoading = true;
+  List<Map<String, dynamic>> get transactions => _transactions;
+  List<Map<String, dynamic>> get categories => _categories;
 
-  // Fonction pour mettre à jour la date et rafraîchir les données
-  void updateSelectedDate(DateTime newDate) {
-    _selectedDate = newDate;
-    fetchData(); 
+  // ==========================
+  // CALCULS FINANCIERS
+  // ==========================
+  int get totalDepensesCount =>
+      _transactions.where((t) => t['type'] == 'depense').length;
+
+  int get moisActifs {
+    if (_transactions.isEmpty) return 0;
+    final moisUniques =
+        _transactions.where((t) => t['date'] != null).map((t) {
+          final date = DateTime.parse(t['date'].toString());
+          return "${date.year}-${date.month}";
+        }).toSet();
+    return moisUniques.length;
   }
 
+  double get totalRevenus => _transactions
+      .where((t) => t['type'] == 'revenu')
+      .fold(0.0, (sum, t) => sum + (t['montant'] as num).toDouble());
+
+  double get totalDepenses => _transactions
+      .where((t) => t['type'] == 'depense')
+      .fold(0.0, (sum, t) => sum + (t['montant'] as num).toDouble());
+
+  double get epargneTotale => totalRevenus - totalDepenses;
+
+  // ==========================
+  // CATÉGORIES
+  // ==========================
+  List<Map<String, dynamic>> get incomeCategories =>
+      _categories.where((c) => c['type'] == 'revenu').toList();
+
+  List<Map<String, dynamic>> get expenseCategories =>
+      _categories.where((c) => c['type'] == 'depense').toList();
+
+  // ==========================
+  // TRANSACTIONS GROUPÉES
+  // ==========================
+  Map<String, List<Map<String, dynamic>>> get groupedTransactions {
+    final Map<String, List<Map<String, dynamic>>> grouped = {};
+    for (final t in _transactions) {
+      if (t['date'] == null) continue;
+      final key = t['date'].toString().split('T').first;
+      grouped.putIfAbsent(key, () => []);
+      grouped[key]!.add(t);
+    }
+    return grouped;
+  }
+
+  // ==========================
+  // INITIALISATION
+  // ==========================
+  Future<void> init() async {
+    try {
+      debugPrint('🔄 Initialisation du UserProvider...');
+      final session = _supabase.auth.currentSession;
+      if (session != null) {
+        debugPrint('✅ Session trouvée pour: ${session.user.email}');
+        _isAuthenticated = true;
+        await _loadProfile();
+        await fetchData();
+        debugPrint('✅ Données chargées avec succès');
+      } else {
+        debugPrint('⚠️ Aucune session trouvée');
+      }
+    } catch (e) {
+      _lastError = 'Erreur lors de l\'initialisation: $e';
+      debugPrint('❌ ERREUR INIT: $_lastError');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+      debugPrint('✅ Initialisation terminée');
+    }
+  }
+
+  // ==========================
+  // AUTHENTIFICATION
+  // ==========================
+  Future<bool> login({required String email, required String password}) async {
+    debugPrint('🔑 Tentative de connexion: $email');
+    _isLoading = true;
+    _lastError = null;
+    notifyListeners();
+
+    final (success, error) = await _authService.login(
+      email: email,
+      password: password,
+    );
+
+    if (success) {
+      debugPrint('✅ Authentification réussie pour: $email');
+      _isAuthenticated = true;
+      try {
+        debugPrint('📥 Chargement du profil...');
+        await _loadProfile();
+        debugPrint('✅ Profil chargé');
+
+        debugPrint('📥 Chargement des données...');
+        await fetchData();
+        debugPrint('✅ Données chargées');
+
+        // Si l'onboarding a été complété localement, le mettre à jour dans Supabase
+        if (_hasCompletedOnboarding) {
+          debugPrint('📤 Mise à jour du onboarding dans Supabase...');
+          await _onboardingService.completeOnboarding();
+          debugPrint('✅ Onboarding mis à jour');
+        }
+      } catch (e) {
+        _lastError = 'Erreur lors du chargement du profil: $e';
+        debugPrint('❌ ERREUR LOGIN: $_lastError');
+      }
+    } else {
+      _lastError = error;
+      _isAuthenticated = false;
+      debugPrint('❌ Échec de l\'authentification: $error');
+    }
+
+    _isLoading = false;
+    notifyListeners();
+    return success;
+  }
+
+  Future<bool> register({
+    required String email,
+    required String password,
+    required String nom,
+    required String prenom,
+  }) async {
+    debugPrint('📝 Tentative d\'inscription: $email');
+    _isLoading = true;
+    _lastError = null;
+    notifyListeners();
+
+    final (success, error) = await _authService.register(
+      email: email,
+      password: password,
+      nom: nom,
+      prenom: prenom,
+    );
+
+    if (success) {
+      debugPrint('✅ Inscription réussie pour: $email');
+      _isAuthenticated = true;
+      try {
+        debugPrint('📥 Chargement du profil après inscription...');
+        await _loadProfile();
+        debugPrint('✅ Profil chargé');
+
+        debugPrint('📥 Chargement des données...');
+        await fetchData();
+        debugPrint('✅ Données chargées');
+
+        // Si l'onboarding a été complété localement, le mettre à jour dans Supabase
+        if (_hasCompletedOnboarding) {
+          debugPrint('📤 Mise à jour du onboarding dans Supabase...');
+          await _onboardingService.completeOnboarding();
+          debugPrint('✅ Onboarding mis à jour');
+        }
+      } catch (e) {
+        _lastError = 'Erreur lors du chargement du profil: $e';
+        debugPrint('❌ ERREUR REGISTER: $_lastError');
+      }
+    } else {
+      _lastError = error;
+      _isAuthenticated = false;
+      debugPrint('❌ Échec de l\'inscription: $error');
+    }
+
+    _isLoading = false;
+    notifyListeners();
+    return success;
+  }
+
+  Future<void> logout() async {
+    debugPrint('🚪 Déconnexion en cours...');
+    try {
+      debugPrint('🔌 Appel du service d\'authentification...');
+      await _authService.logout();
+      debugPrint('✅ Service d\'authentification déconnecté');
+
+      debugPrint('🗑️ Nettoyage des données locales...');
+      _isAuthenticated = false;
+      _profile = null;
+      _transactions.clear();
+      debugPrint('✅ Transactions effacées (${_transactions.length})');
+      _categories.clear();
+      debugPrint('✅ Catégories effacées (${_categories.length})');
+      _hasCompletedOnboarding = false;
+      _lastError = null;
+
+      notifyListeners();
+      debugPrint('✅ Listeners notifiés');
+      debugPrint('✅ DÉCONNEXION RÉUSSIE');
+    } catch (e) {
+      debugPrint('❌ Erreur lors de la déconnexion: $e');
+      rethrow;
+    }
+  }
+
+  // ==========================
+  // PROFIL ET ONBOARDING
+  // ==========================
+  Future<void> _loadProfile() async {
+    try {
+      debugPrint('📥 Chargement du profil depuis Supabase...');
+      final (profile, error) = await _onboardingService.getUserProfile();
+      if (error != null) {
+        _lastError = error;
+        debugPrint('❌ Erreur lors du chargement du profil: $error');
+        return;
+      }
+      _profile = profile;
+      _hasCompletedOnboarding = profile?['onboarding_done'] as bool? ?? false;
+      debugPrint(
+        '✅ Profil chargé: ${profile?['nom'] ?? 'N/A'}, onboarding_done: $_hasCompletedOnboarding',
+      );
+    } catch (e) {
+      _lastError = 'Erreur lors du chargement du profil: $e';
+      debugPrint('❌ EXCEPTION: $_lastError');
+    }
+  }
+
+  Future<bool> completeOnboarding() async {
+    debugPrint('🎯 Marquage du onboarding comme complété');
+    // Marquer localement comme complété, même si pas encore authentifié
+    _hasCompletedOnboarding = true;
+    notifyListeners();
+    debugPrint('✅ Onboarding marqué localement: $_hasCompletedOnboarding');
+
+    // Essayer de mettre à jour dans Supabase si l'utilisateur est authentifié
+    if (_isAuthenticated) {
+      debugPrint('📤 Utilisateur authentifié, mise à jour dans Supabase...');
+      final (success, error) = await _onboardingService.completeOnboarding();
+      if (!success) {
+        _lastError = error;
+        debugPrint('❌ Erreur Supabase: $error');
+        return false;
+      }
+      debugPrint('✅ Onboarding mis à jour dans Supabase');
+    } else {
+      debugPrint(
+        '⚠️ Utilisateur non authentifié, onboarding sera mis à jour lors de la connexion',
+      );
+    }
+    return true;
+  }
+
+  // ==========================
+  // DONNÉES
+  // ==========================
   Future<void> fetchData() async {
     try {
-      isLoading = true;
-      notifyListeners();
-
-      final user = _supabase.auth.currentUser;
-      if (user == null) return;
-
-      // 1. Charger les catégories (Emojis inclus)
-      final catData = await _supabase.from('categories').select();
-      final allCats = List<Map<String, dynamic>>.from(catData);
-      incomeCategories = allCats.where((c) => c['type'] == 'revenu').toList();
-      expenseCategories = allCats.where((c) => c['type'] == 'depense').toList();
-
-      // 2. Définir les limites du mois sélectionné
-      final firstDay = DateTime(_selectedDate.year, _selectedDate.month, 1);
-      final lastDay = DateTime(_selectedDate.year, _selectedDate.month + 1, 0, 23, 59, 59);
-
-      // 3. Récupérer Profil + TOUTES les transactions (Revenus et Dépenses)
-      final results = await Future.wait<dynamic>([
-        _supabase.from('profiles').select().eq('id', user.id).maybeSingle(),
-        _supabase.from('revenus').select('*, categories(nom, emoji)').eq('user_id', user.id),
-        _supabase.from('depenses').select('*, categories(nom, emoji)').eq('user_id', user.id),
-      ]);
-
-      // --- TRAITEMENT DU PROFIL ---
-      final profileData = results[0] as Map<String, dynamic>?;
-      if (profileData != null) {
-        String p = profileData['prenom'] ?? '';
-        String n = profileData['nom'] ?? '';
-        displayName = "$p $n".trim();
-        if (displayName.isEmpty) displayName = "Utilisateur";
-      }
-
-      // --- TRAITEMENT GLOBAL (Stats Profil) ---
-      final allRevs = results[1] as List<dynamic>;
-      final allDeps = results[2] as List<dynamic>;
-
-      double globalRev = 0;
-      double globalDep = 0;
-      for (var r in allRevs) globalRev += (r['montant'] as num).toDouble();
-      for (var d in allDeps) globalDep += (d['montant'] as num).toDouble();
-      
-      totalDepensesCount = allDeps.length;
-      epargneTotale = (globalRev - globalDep) > 0 ? (globalRev - globalDep) : 0;
-
-      // --- TRAITEMENT MENSUEL (Filtrage avec correction d'erreur de variable) ---
-      final monthlyRevs = allRevs.where((item) {
-        DateTime txDate = DateTime.parse(item['date']);
-        return txDate.isAfter(firstDay.subtract(const Duration(seconds: 1))) && txDate.isBefore(lastDay);
-      }).toList();
-
-      final monthlyDeps = allDeps.where((item) {
-        DateTime txDate = DateTime.parse(item['date']);
-        return txDate.isAfter(firstDay.subtract(const Duration(seconds: 1))) && txDate.isBefore(lastDay);
-      }).toList();
-
-      // Fusionner et trier
-      final allFiltered = [
-        ...monthlyRevs.map((e) => {...e, 'type': 'revenu'}),
-        ...monthlyDeps.map((e) => {...e, 'type': 'depense'}),
-      ];
-      
-      allFiltered.sort((a, b) => DateTime.parse(b['date']).compareTo(DateTime.parse(a['date'])));
-
-      // Groupement par date pour la liste
-      Map<String, List<Map<String, dynamic>>> groups = {};
-      double resRev = 0;
-      double resDep = 0;
-
-      for (var tx in allFiltered) {
-        String dateKey = DateFormat('yyyy-MM-dd').format(DateTime.parse(tx['date']));
-        groups.putIfAbsent(dateKey, () => []);
-        groups[dateKey]!.add(Map<String, dynamic>.from(tx));
-        
-        double mnt = (tx['montant'] as num).toDouble();
-        if (tx['type'] == 'revenu') resRev += mnt; else resDep += mnt;
-      }
-
-      totalRevenus = resRev;
-      totalDepenses = resDep;
-      groupedTransactions = groups;
-      
-      // Calcul de l'ancienneté
-      if (user.createdAt != null) {
-        DateTime debut = DateTime.parse(user.createdAt!);
-        DateTime maintenant = DateTime.now();
-        moisActifs = ((maintenant.year - debut.year) * 12) + maintenant.month - debut.month + 1;
-      }
-
-      isLoading = false;
-      notifyListeners();
-    } catch (e) {
-      debugPrint("Erreur fatale Provider: $e");
-      isLoading = false;
+      await Future.wait([fetchTransactions(), fetchCategories()]);
+    } finally {
       notifyListeners();
     }
   }
 
-  // Helper pour l'interface AddTransaction
-  List<Map<String, dynamic>> getCategoriesByType(String type) {
-    return type == 'revenu' ? incomeCategories : expenseCategories;
+  Future<void> fetchTransactions() async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) {
+      debugPrint('⚠️ Pas d\'utilisateur pour charger les transactions');
+      _transactions = [];
+      return;
+    }
+
+    try {
+      debugPrint('📥 Chargement des transactions pour: ${user.email}');
+      final (transactions, error) = await _transactionService.getTransactions();
+      if (error != null) {
+        _lastError = error;
+        _transactions = [];
+        debugPrint('❌ Erreur lors du chargement des transactions: $error');
+      } else {
+        _transactions = transactions;
+        debugPrint('✅ ${_transactions.length} transaction(s) chargée(s)');
+      }
+    } catch (e) {
+      _lastError = 'Erreur lors du chargement des transactions: $e';
+      debugPrint('❌ EXCEPTION: $_lastError');
+      _transactions = [];
+    }
+  }
+
+  Future<void> fetchCategories() async {
+    try {
+      debugPrint('📥 Chargement des catégories...');
+      final data = await _supabase.from('categories').select();
+      _categories = List<Map<String, dynamic>>.from(data);
+      debugPrint('✅ ${_categories.length} catégorie(s) chargée(s)');
+    } catch (e) {
+      _lastError = 'Erreur lors du chargement des catégories: $e';
+      debugPrint('❌ EXCEPTION: $_lastError');
+      _categories = [];
+    }
+  }
+
+  // ==========================
+  // TRANSACTIONS
+  // ==========================
+  Future<bool> addTransaction({
+    required double montant,
+    required String type,
+    required String categorieId,
+    required DateTime date,
+    required String description,
+  }) async {
+    debugPrint('💰 Ajout d\'une transaction: $montant $type');
+    final (success, error) = await _transactionService.addTransaction(
+      montant: montant,
+      type: type,
+      categorieId: categorieId,
+      date: date,
+      description: description,
+    );
+
+    if (success) {
+      debugPrint('✅ Transaction ajoutée avec succès');
+      await fetchTransactions();
+      notifyListeners();
+    } else {
+      _lastError = error;
+      debugPrint('❌ Erreur lors de l\'ajout de transaction: $error');
+    }
+
+    return success;
+  }
+
+  // ==========================
+  // UI
+  // ==========================
+  void updateSelectedDate(DateTime date) {
+    _selectedDate = date;
+    notifyListeners();
   }
 }

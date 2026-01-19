@@ -28,12 +28,12 @@ class HomeHeaderStats extends StatelessWidget {
   Widget _buildDateSelector(BuildContext context) {
     // On utilise la date stockée dans le provider pour que tout soit synchrone
     // Si tu n'as pas encore 'selectedDate' dans ton provider, utilise DateTime.now() par défaut
-    DateTime displayDate = store.selectedDate; 
+    DateTime displayDate = store.selectedDate;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center, 
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // Bouton Mois Précédent
           IconButton(
@@ -41,15 +41,15 @@ class HomeHeaderStats extends StatelessWidget {
             icon: const Icon(Icons.chevron_left, color: Colors.grey),
           ),
           const SizedBox(width: 20),
-          
+
           // Affichage du mois et de l'année
           Text(
-            DateFormat('MMM yyyy', 'fr_FR').format(displayDate), 
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500)
+              DateFormat('MMM yyyy', 'fr_FR').format(displayDate),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500)
           ),
-          
+
           const SizedBox(width: 20),
-          
+
           // Bouton Mois Suivant
           IconButton(
             onPressed: () => _changeMonth(context, 1),
@@ -65,7 +65,7 @@ class HomeHeaderStats extends StatelessWidget {
     DateTime current = store.selectedDate;
     // On crée la nouvelle date en ajoutant/retirant un mois
     DateTime newDate = DateTime(current.year, current.month + offset, 1);
-    
+
     // On met à jour la date dans le provider (méthode à créer dans user_provider.dart)
     store.updateSelectedDate(newDate);
   }
@@ -73,13 +73,13 @@ class HomeHeaderStats extends StatelessWidget {
   Widget _buildTabsHeader() => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
     child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround, 
-      children: [
-        _tabButton("Liste", 0),
-        _tabButton("Calendrier", 1),
-        _tabButton("Mois", 2),
-        _tabButton("Résumé", 3),
-      ]
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _tabButton("Liste", 0),
+          _tabButton("Calendrier", 1),
+          _tabButton("Mois", 2),
+          _tabButton("Résumé", 3),
+        ]
     ),
   );
 
@@ -90,8 +90,8 @@ class HomeHeaderStats extends StatelessWidget {
       child: Column(
         children: [
           Text(title, style: TextStyle(
-            color: isActive ? const Color(0xFF2D6A4F) : Colors.grey, 
-            fontWeight: isActive ? FontWeight.bold : FontWeight.normal
+              color: isActive ? const Color(0xFF2D6A4F) : Colors.grey,
+              fontWeight: isActive ? FontWeight.bold : FontWeight.normal
           )),
           if (isActive) Container(margin: const EdgeInsets.only(top: 5), height: 2, width: 30, color: const Color(0xFF2D6A4F))
         ],

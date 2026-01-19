@@ -13,7 +13,6 @@ class CalendarTab extends StatefulWidget {
 class _CalendarTabState extends State<CalendarTab> {
   CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _focusedDay = DateTime.now();
-  DateTime? _selectedDay;
 
   @override
   Widget build(BuildContext context) {
@@ -28,14 +27,17 @@ class _CalendarTabState extends State<CalendarTab> {
           focusedDay: _focusedDay,
           calendarFormat: _calendarFormat,
           startingDayOfWeek: StartingDayOfWeek.sunday,
-          headerVisible: false, 
+          headerVisible: false,
           daysOfWeekHeight: 30,
           calendarStyle: const CalendarStyle(
             outsideDaysVisible: true,
-            todayDecoration: BoxDecoration(), 
+            todayDecoration: BoxDecoration(),
             selectedDecoration: BoxDecoration(),
             tableBorder: TableBorder(
-              horizontalInside: BorderSide(color: Color(0xFF2D6A4F), width: 0.5),
+              horizontalInside: BorderSide(
+                color: Color(0xFF2D6A4F),
+                width: 0.5,
+              ),
               verticalInside: BorderSide(color: Color(0xFF2D6A4F), width: 0.5),
             ),
           ),
@@ -51,7 +53,7 @@ class _CalendarTabState extends State<CalendarTab> {
               return _buildCellContent(day, store, isOutside: true);
             },
           ),
-          
+
           onFormatChanged: (format) {
             setState(() => _calendarFormat = format);
           },
@@ -63,8 +65,14 @@ class _CalendarTabState extends State<CalendarTab> {
     );
   }
 
-  Widget _buildCellContent(DateTime day, UserProvider store, {bool isToday = false, bool isOutside = false}) {
-    final String dateKey = "${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}";
+  Widget _buildCellContent(
+    DateTime day,
+    UserProvider store, {
+    bool isToday = false,
+    bool isOutside = false,
+  }) {
+    final String dateKey =
+        "${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}";
     final dayTransactions = store.groupedTransactions[dateKey] ?? [];
 
     double dayRev = 0;
@@ -72,7 +80,11 @@ class _CalendarTabState extends State<CalendarTab> {
 
     for (var tx in dayTransactions) {
       double mnt = (tx['montant'] as num).toDouble();
-      if (tx['type'] == 'revenu') dayRev += mnt; else dayDep += mnt;
+      if (tx['type'] == 'revenu') {
+        dayRev += mnt;
+      } else {
+        dayDep += mnt;
+      }
     }
 
     return Container(
@@ -84,7 +96,6 @@ class _CalendarTabState extends State<CalendarTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          
           Padding(
             padding: const EdgeInsets.all(2),
             child: Text(

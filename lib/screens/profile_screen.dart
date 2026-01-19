@@ -1,16 +1,47 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/user_provider.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   Future<void> _signOut(BuildContext context) async {
-    await Supabase.instance.client.auth.signOut();
-    if (context.mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+    debugPrint('🚪 Déconnexion en cours...');
+
+    try {
+      // Supprimer les identifiants sauvegardés
+      debugPrint('🗑️ Suppression des données sauvegardées...');
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('saved_email');
+      debugPrint('✅ Email sauvegardé supprimé');
+
+      // Appeler le logout du UserProvider
+      final userProvider = context.read<UserProvider>();
+      await userProvider.logout();
+      debugPrint('✅ Déconnexion côté Provider réussie');
+
+      // Déconnexion Supabase
+      await Supabase.instance.client.auth.signOut();
+      debugPrint('✅ Déconnexion Supabase réussie');
+
+      if (context.mounted) {
+        debugPrint('🚀 Navigation vers /welcome');
+        context.go('/welcome');
+      }
+    } catch (e) {
+      debugPrint('❌ Erreur lors de la déconnexion: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -49,7 +80,10 @@ class ProfileScreen extends StatelessWidget {
           width: double.infinity,
           decoration: const BoxDecoration(
             color: Color(0xFF2D6A4F),
-            borderRadius: BorderRadius.only(bottomLeft: Radius.circular(40), bottomRight: Radius.circular(40)),
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(40),
+              bottomRight: Radius.circular(40),
+            ),
           ),
           child: SafeArea(
             child: Padding(
@@ -58,16 +92,33 @@ class ProfileScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 22),
-                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                    onPressed: () => context.pop(),
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text("Profile", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-                        IconButton(icon: const Icon(LucideIcons.settings, color: Colors.white), onPressed: () {}),
+                        const Text(
+                          "Profile",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            LucideIcons.settings,
+                            color: Colors.white,
+                          ),
+                          onPressed: () {},
+                        ),
                       ],
                     ),
                   ),
@@ -77,33 +128,65 @@ class ProfileScreen extends StatelessWidget {
           ),
         ),
         Positioned(
-          top: 150, 
+          top: 150,
           child: Container(
             width: MediaQuery.of(context).size.width * 0.85,
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(25),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                ),
+              ],
             ),
             child: Row(
               children: [
-                const CircleAvatar(radius: 35, backgroundColor: Color(0xFFE0E0E0), child: Icon(LucideIcons.user, size: 40, color: Colors.grey)),
+                const CircleAvatar(
+                  radius: 35,
+                  backgroundColor: Color(0xFFE0E0E0),
+                  child: Icon(LucideIcons.user, size: 40, color: Colors.grey),
+                ),
                 const SizedBox(width: 15),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(store.displayName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+                      Text(
+                        store.displayName,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                       const SizedBox(height: 5),
-                      Row(children: [
-                        const Icon(LucideIcons.mail, size: 14, color: Color(0xFF2D6A4F)),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text(email, style: const TextStyle(color: Colors.grey, fontSize: 13), overflow: TextOverflow.ellipsis)),
-                      ]),
+                      Row(
+                        children: [
+                          const Icon(
+                            LucideIcons.mail,
+                            size: 14,
+                            color: Color(0xFF2D6A4F),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              email,
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 13,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
-                )
+                ),
               ],
             ),
           ),
@@ -120,7 +203,10 @@ class ProfileScreen extends StatelessWidget {
         children: [
           _buildStatCard(store.totalDepensesCount.toString(), "Dépenses"),
           _buildStatCard(store.moisActifs.toString(), "Mois Actif"),
-          _buildStatCard("${(store.epargneTotale / 1000).toStringAsFixed(1)}k", "Epargné"),
+          _buildStatCard(
+            "${(store.epargneTotale / 1000).toStringAsFixed(1)}k",
+            "Epargné",
+          ),
         ],
       ),
     );
@@ -130,33 +216,60 @@ class ProfileScreen extends StatelessWidget {
     return Container(
       width: 105,
       padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)]),
-      child: Column(children: [
-        Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF2D6A4F))),
-        const SizedBox(height: 5),
-        Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-      ]),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5),
+        ],
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2D6A4F),
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+        ],
+      ),
     );
   }
 
   Widget _buildMenuSection() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.withOpacity(0.1))),
-      child: Column(children: [
-        _buildMenuItem(LucideIcons.user, "Infos du Compte"),
-        const Divider(height: 1),
-        _buildMenuItem(LucideIcons.shieldCheck, "Securité & Confidentialité"),
-        const Divider(height: 1),
-        _buildMenuItem(LucideIcons.helpCircle, "Aide"),
-      ]),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.withOpacity(0.1)),
+      ),
+      child: Column(
+        children: [
+          _buildMenuItem(LucideIcons.user, "Infos du Compte"),
+          const Divider(height: 1),
+          _buildMenuItem(LucideIcons.shieldCheck, "Securité & Confidentialité"),
+          const Divider(height: 1),
+          _buildMenuItem(LucideIcons.helpCircle, "Aide"),
+        ],
+      ),
     );
   }
 
   Widget _buildMenuItem(IconData icon, String title) {
     return ListTile(
-      leading: CircleAvatar(backgroundColor: const Color(0xFF2D6A4F).withOpacity(0.1), child: Icon(icon, color: const Color(0xFF2D6A4F), size: 18)),
-      title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+      leading: CircleAvatar(
+        backgroundColor: const Color(0xFF2D6A4F).withOpacity(0.1),
+        child: Icon(icon, color: const Color(0xFF2D6A4F), size: 18),
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+      ),
       trailing: const Icon(Icons.chevron_right, size: 20, color: Colors.grey),
     );
   }
@@ -165,15 +278,52 @@ class ProfileScreen extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: OutlinedButton.icon(
-        onPressed: () => _signOut(context),
+        onPressed: () => _showLogoutConfirmation(context),
         icon: const Icon(LucideIcons.logOut, color: Colors.red, size: 20),
-        label: const Text("Log out", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+        label: const Text(
+          "Log out",
+          style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+        ),
         style: OutlinedButton.styleFrom(
           minimumSize: const Size(double.infinity, 55),
           side: const BorderSide(color: Colors.red),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
         ),
       ),
+    );
+  }
+
+  Future<void> _showLogoutConfirmation(BuildContext context) async {
+    debugPrint('❓ Affichage du dialogue de confirmation de déconnexion');
+    return showDialog(
+      context: context,
+      builder:
+          (BuildContext context) => AlertDialog(
+            title: const Text('Confirmer la déconnexion'),
+            content: const Text('Êtes-vous sûr de vouloir vous déconnecter?'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  debugPrint('❌ Déconnexion annulée par l\'utilisateur');
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Annuler'),
+              ),
+              TextButton(
+                onPressed: () {
+                  debugPrint('✅ Confirmé par l\'utilisateur');
+                  Navigator.of(context).pop();
+                  _signOut(context);
+                },
+                child: const Text(
+                  'Déconnecter',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
+          ),
     );
   }
 }

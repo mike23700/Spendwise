@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'register_screen.dart';
-import 'login_screen.dart';
+import 'package:go_router/go_router.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -11,63 +10,70 @@ class WelcomeScreen extends StatelessWidget {
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Column(
-                children: [
-                  const Icon(
+                children: const [
+                  Icon(
                     Icons.trending_up_rounded,
-                    size: 80,
+                    size: 72,
                     color: Color(0xFF2D6A4F),
                   ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    "Spendwise",
+                  SizedBox(height: 20),
+                  Text(
+                    "wiseNkap",
                     style: TextStyle(
-                      fontSize: 32,
+                      fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black,
+                      letterSpacing: 1,
+                      color: Color(0xFF2D6A4F),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  const Text(
+                  SizedBox(height: 12),
+                  Text(
                     "Prenez le contrôle de vos finances intelligemment",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.grey,
+                      height: 1.4,
                     ),
                   ),
                 ],
               ),
 
-              Center(
-                child: Image.asset(
-                  'assets/Wallet.png', 
-                  height: 280,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      height: 200,
-                      width: 200,
-                      color: Colors.grey[100],
-                      child: const Icon(Icons.account_balance_wallet, size: 100, color: Colors.grey),
-                    );
-                  },
-                ),
+              // =========================
+              // CENTRE : Illustration
+              // =========================
+              Image.asset(
+                'assets/wiseNkap.png',
+                height: 260,
+                fit: BoxFit.contain,
+                errorBuilder:
+                    (_, __, ___) => Container(
+                      height: 220,
+                      width: 220,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: const Icon(
+                        Icons.account_balance_wallet_rounded,
+                        size: 96,
+                        color: Colors.grey,
+                      ),
+                    ),
               ),
 
-              // Section Basse : Boutons d'action
+              // =========================
+              // BAS : Actions
+              // =========================
               Column(
                 children: [
                   ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const RegisterScreen()),
-                      );
-                    },
+                    onPressed: () => context.push('/register'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2D6A4F),
                       minimumSize: const Size(double.infinity, 56),
@@ -77,38 +83,44 @@ class WelcomeScreen extends StatelessWidget {
                       ),
                     ),
                     child: const Text(
-                      "S'inscrire",
+                      "Créer un compte",
                       style: TextStyle(
-                        color: Colors.white,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 16),
-                  
+
                   OutlinedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const LoginScreen()),
-                      );
-                    },
+                    onPressed: () => context.push('/login'),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(double.infinity, 56),
-                      side: const BorderSide(color: Color(0xFF2D6A4F), width: 2),
+                      side: const BorderSide(
+                        color: Color(0xFF2D6A4F),
+                        width: 2,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
                     child: const Text(
-                      "Connexion",
+                      "J'ai déjà un compte",
                       style: TextStyle(
-                        color: Color(0xFF2D6A4F),
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
+                        color: Color(0xFF2D6A4F),
                       ),
                     ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  const Text(
+                    "Simple • Sécurisé • Intelligent",
+                    style: TextStyle(fontSize: 13, color: Colors.grey),
                   ),
                 ],
               ),

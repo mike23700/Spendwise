@@ -1,7 +1,7 @@
 class Category {
   final String id;
   final String name;
-  final String type; 
+  final String type;
   final String? emoji;
   final String? userId;
   final DateTime createdAt;
@@ -22,9 +22,10 @@ class Category {
       type: json['type'] ?? 'depense',
       emoji: json['emoji'],
       userId: json['user_id'],
-      createdAt: json['created_at'] != null 
-          ? DateTime.parse(json['created_at']) 
-          : DateTime.now(),
+      createdAt:
+          json['created_at'] != null
+              ? DateTime.parse(json['created_at'])
+              : DateTime.now(),
     );
   }
 

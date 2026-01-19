@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
 
@@ -14,7 +13,6 @@ class AddTransactionSheet extends StatefulWidget {
 }
 
 class _AddTransactionSheetState extends State<AddTransactionSheet> {
-  final _supabase = Supabase.instance.client;
   bool isIncome = true;
   final _amountController = TextEditingController();
   final _noteController = TextEditingController();
@@ -30,7 +28,8 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
 
   void _setDefaultCategory() {
     final store = Provider.of<UserProvider>(context, listen: false);
-    final categories = isIncome ? store.incomeCategories : store.expenseCategories;
+    final categories =
+        isIncome ? store.incomeCategories : store.expenseCategories;
     if (categories.isNotEmpty) {
       setState(() => _selectedCategory = categories[0]);
     }
@@ -39,24 +38,34 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
   @override
   Widget build(BuildContext context) {
     final store = context.watch<UserProvider>();
-    final categories = isIncome ? store.incomeCategories : store.expenseCategories;
+    final categories =
+        isIncome ? store.incomeCategories : store.expenseCategories;
 
     return Container(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
-        top: 20, left: 20, right: 20
+        top: 20,
+        left: 20,
+        right: 20,
       ),
       decoration: const BoxDecoration(
-        color: Colors.white, 
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25))
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10))),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
             const SizedBox(height: 20),
-            
+
             // Sélecteur Revenu / Dépense
             Row(
               children: [
@@ -69,31 +78,40 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
 
             TextField(
               controller: _amountController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: InputDecoration(
                 labelText: "Montant",
                 prefixText: "FCFA ",
                 filled: true,
                 fillColor: Colors.grey[50],
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
             const SizedBox(height: 15),
 
             DropdownButtonFormField<Map<String, dynamic>>(
-              value: _selectedCategory,
+              initialValue: _selectedCategory,
               decoration: InputDecoration(
                 labelText: "Catégorie",
                 filled: true,
                 fillColor: Colors.grey[50],
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide.none,
+                ),
               ),
-              items: categories.map((cat) {
-                return DropdownMenuItem(
-                  value: cat,
-                  child: Text("${cat['emoji'] ?? '📁'}  ${cat['nom']}"),
-                );
-              }).toList(),
+              items:
+                  categories.map((cat) {
+                    return DropdownMenuItem(
+                      value: cat,
+                      child: Text("${cat['emoji'] ?? '📁'}  ${cat['nom']}"),
+                    );
+                  }).toList(),
               onChanged: (val) => setState(() => _selectedCategory = val),
             ),
             const SizedBox(height: 15),
@@ -107,7 +125,10 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
                 labelText: "Note (optionnel)",
                 filled: true,
                 fillColor: Colors.grey[50],
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
             const SizedBox(height: 30),
@@ -117,11 +138,20 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF2D6A4F),
                 minimumSize: const Size(double.infinity, 55),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
               ),
-              child: _isSaving 
-                ? const CircularProgressIndicator(color: Colors.white) 
-                : const Text("Ajouter", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child:
+                  _isSaving
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                        "Ajouter",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
             ),
             const SizedBox(height: 20),
           ],
@@ -130,19 +160,30 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
     );
   }
 
-
   Widget _buildDatePicker() {
     return InkWell(
       onTap: () async {
-        final date = await showDatePicker(context: context, initialDate: selectedDate, firstDate: DateTime(2000), lastDate: DateTime(2100));
+        final date = await showDatePicker(
+          context: context,
+          initialDate: selectedDate,
+          firstDate: DateTime(2000),
+          lastDate: DateTime(2100),
+        );
         if (date != null) setState(() => selectedDate = date);
       },
       child: Container(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(15)),
+        decoration: BoxDecoration(
+          color: Colors.grey[50],
+          borderRadius: BorderRadius.circular(15),
+        ),
         child: Row(
           children: [
-            const Icon(LucideIcons.calendar, size: 20, color: Color(0xFF2D6A4F)),
+            const Icon(
+              LucideIcons.calendar,
+              size: 20,
+              color: Color(0xFF2D6A4F),
+            ),
             const SizedBox(width: 10),
             Text(DateFormat('dd MMMM yyyy', 'fr_FR').format(selectedDate)),
           ],
@@ -153,7 +194,7 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
 
   Widget _buildTypeTab(String label, bool value, Color activeColor) {
     bool isSelected = isIncome == value;
-    return Expanded( 
+    return Expanded(
       child: GestureDetector(
         onTap: () {
           setState(() => isIncome = value);
@@ -166,7 +207,13 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
             borderRadius: BorderRadius.circular(12),
           ),
           child: Center(
-            child: Text(label, style: TextStyle(color: isSelected ? Colors.white : Colors.black54, fontWeight: FontWeight.bold)),
+            child: Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.black54,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ),
       ),
@@ -177,21 +224,26 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
     if (_amountController.text.isEmpty || _selectedCategory == null) return;
     setState(() => _isSaving = true);
     try {
-      final user = _supabase.auth.currentUser;
-      final tableName = isIncome ? 'revenus' : 'depenses';
-      await _supabase.from(tableName).insert({
-        'user_id': user!.id,
-        'montant': double.parse(_amountController.text),
-        'date': selectedDate.toIso8601String().split('T')[0],
-        'description': _noteController.text.trim(),
-        'categorie_id': _selectedCategory!['id'],
-      });
-      if (mounted) {
+      final userProvider = context.read<UserProvider>();
+      final success = await userProvider.addTransaction(
+        montant: double.parse(_amountController.text),
+        type: isIncome ? 'revenu' : 'depense',
+        categorieId: _selectedCategory!['id'],
+        date: selectedDate,
+        description: _noteController.text.trim(),
+      );
+
+      if (success && mounted) {
         widget.onTransactionAdded();
         Navigator.pop(context);
       }
     } catch (e) {
       debugPrint("Erreur: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Erreur: $e"), backgroundColor: Colors.red),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }

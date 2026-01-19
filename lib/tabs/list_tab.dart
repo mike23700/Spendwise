@@ -13,8 +13,10 @@ class ListTab extends StatelessWidget {
 
     if (sortedKeys.isEmpty && !store.isLoading) {
       return const Center(
-        child: Text("Aucune transaction pour le moment.",
-            style: TextStyle(color: Colors.grey)),
+        child: Text(
+          "Aucune transaction pour le moment.",
+          style: TextStyle(color: Colors.grey),
+        ),
       );
     }
 
@@ -23,7 +25,10 @@ class ListTab extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 80),
       itemBuilder: (context, index) {
         String date = sortedKeys[index];
-        return _DayGroupWidget(date: date, items: store.groupedTransactions[date]!);
+        return _DayGroupWidget(
+          date: date,
+          items: store.groupedTransactions[date]!,
+        );
       },
     );
   }
@@ -50,7 +55,7 @@ class _DayGroupWidgetState extends State<_DayGroupWidget> {
       double mnt = (item['montant'] as num).toDouble();
       if (item['type'] == 'revenu') {
         dayRev += mnt;
-      } else {
+      } else if (item['type'] == 'expense') {
         dayDep += mnt;
       }
     }
@@ -64,31 +69,49 @@ class _DayGroupWidgetState extends State<_DayGroupWidget> {
             color: Colors.grey[50],
             child: Row(
               children: [
-                Text(DateFormat('dd', 'fr_FR').format(dt),
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                Text(
+                  DateFormat('dd', 'fr_FR').format(dt),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(width: 5),
                 Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                        color: Colors.black87, borderRadius: BorderRadius.circular(4)),
-                    child: Text(DateFormat('E', 'fr_FR').format(dt).toLowerCase(),
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold))),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black87,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    DateFormat('E', 'fr_FR').format(dt).toLowerCase(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 8),
                 const Spacer(),
-                Text("FCFA ${dayRev.toInt()}",
-                    style: const TextStyle(color: Colors.indigo, fontSize: 12)),
+                Text(
+                  "FCFA ${dayRev.toInt()}",
+                  style: const TextStyle(color: Colors.indigo, fontSize: 12),
+                ),
                 const SizedBox(width: 40),
-                Text("FCFA ${dayDep.toInt()}",
-                    style: const TextStyle(color: Colors.orange, fontSize: 12)),
+                Text(
+                  "FCFA ${dayDep.toInt()}",
+                  style: const TextStyle(color: Colors.orange, fontSize: 12),
+                ),
               ],
             ),
           ),
         ),
         if (_isExpanded)
-          ...widget.items.map((tx) => _TransactionDetailTile(tx: tx)).toList(),
+          ...widget.items.map((tx) => _TransactionDetailTile(tx: tx)),
       ],
     );
   }
@@ -100,13 +123,13 @@ class _TransactionDetailTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    bool isRev = tx['type'] == 'revenu';
-    
+    bool isRev = tx['type'] == 'income';
+
     // Récupération sécurisée du nom et de l'emoji
     final categoryData = tx['categories'];
     String categoryName = categoryData?['nom'] ?? 'Autre';
     String emoji = categoryData?['emoji'] ?? '📁';
-    
+
     String? note = tx['description'];
 
     return Padding(
@@ -130,31 +153,37 @@ class _TransactionDetailTile extends StatelessWidget {
               ],
             ),
           ),
-          
+
           // Colonne Note / Source
           Expanded(
             flex: 3,
             child: Column(
               children: [
                 if (note != null && note.isNotEmpty)
-                  Text(note,
-                      style: const TextStyle(fontSize: 14, color: Colors.black87),
-                      textAlign: TextAlign.center,
-                      overflow: TextOverflow.ellipsis),
-                const Text("Portefeuille",
-                    style: TextStyle(color: Colors.grey, fontSize: 12),
-                    textAlign: TextAlign.center),
+                  Text(
+                    note,
+                    style: const TextStyle(fontSize: 14, color: Colors.black87),
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                const Text(
+                  "Portefeuille",
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                  textAlign: TextAlign.center,
+                ),
               ],
             ),
           ),
-          
+
           // Colonne Montant
           Expanded(
             flex: 3,
             child: Text(
               "FCFA ${(tx['montant'] as num).toInt()}",
               style: TextStyle(
-                  color: isRev ? Colors.indigo : Colors.redAccent, fontSize: 14),
+                color: isRev ? Colors.indigo : Colors.redAccent,
+                fontSize: 14,
+              ),
               textAlign: TextAlign.right,
             ),
           ),
