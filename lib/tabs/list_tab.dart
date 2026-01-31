@@ -52,6 +52,7 @@ class _DayGroupWidgetState extends State<_DayGroupWidget> {
     DateTime dt = DateTime.parse(widget.date);
     double dayRev = 0;
     double dayDep = 0;
+
     for (var item in widget.items) {
       double mnt = item.amount;
       if (item.type == 'revenu') {
@@ -98,14 +99,28 @@ class _DayGroupWidgetState extends State<_DayGroupWidget> {
                 ),
                 const SizedBox(width: 8),
                 const Spacer(),
-                Text(
-                  "FCFA ${dayRev.toInt()}",
-                  style: const TextStyle(color: Colors.indigo, fontSize: 12),
+                SizedBox(
+                  width: 90,
+                  child: Text(
+                    "FCFA ${dayRev.toInt()}",
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(
+                      color: Colors.indigo,
+                      fontSize: 12,
+                    ),
+                  ),
                 ),
-                const SizedBox(width: 40),
-                Text(
-                  "FCFA ${dayDep.toInt()}",
-                  style: const TextStyle(color: Colors.orange, fontSize: 12),
+                const SizedBox(width: 16),
+                SizedBox(
+                  width: 90,
+                  child: Text(
+                    "FCFA ${dayDep.toInt()}",
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(
+                      color: Colors.orange,
+                      fontSize: 12,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -117,6 +132,7 @@ class _DayGroupWidgetState extends State<_DayGroupWidget> {
     );
   }
 }
+
 
 class _TransactionDetailTile extends StatelessWidget {
   final Transaction tx;

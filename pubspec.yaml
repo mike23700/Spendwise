@@ -2,7 +2,7 @@ name: wiseNkap
 description: "Application simple pour gérer vos revenus et dépenses au quotidien."
 publish_to: 'none'
 
-version: 1.0.0+2002
+version: 1.0.0+2003
 
 environment:
   sdk: ">=3.9.0 <4.0.0"
@@ -38,7 +38,7 @@ dev_dependencies:
 flutter_icons:
   android: true
   ios: true
-  image_path: "assets/wiseNkap.png"
+  image_path: "assets/icon.png"
 
 flutter_native_splash:
   color: "#ffffff"               
